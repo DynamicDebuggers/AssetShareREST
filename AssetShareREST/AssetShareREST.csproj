@@ -10,4 +10,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="AssetShareLib">
+      <HintPath>..\..\AssetShareLib\AssetShareLib\bin\Debug\net8.0\AssetShareLib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
