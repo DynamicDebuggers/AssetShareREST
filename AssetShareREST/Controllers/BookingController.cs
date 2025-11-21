@@ -78,21 +78,6 @@ namespace AssetShareREST.Controllers
                 return Conflict(e.Message);
             }
         }
-        //DELETE api/<BookingController>/{id}
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [HttpDelete("{id}")]
-        public ActionResult<Booking> Delete(int id)
-        {
-            var booking = _repository.GetById(id);
-            if (booking == null)
-            {
-                return NotFound($"No booking found with ID: {id}");
-            }
-            _repository.Delete(id);
-            return Ok(booking);
-
-        }
         //PUT api/<BookingController>/{id}
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -132,6 +117,22 @@ namespace AssetShareREST.Controllers
             {
                 return Conflict(e.Message);
             }
+        }
+
+        //DELETE api/<BookingController>/{id}
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpDelete("{id}")]
+        public ActionResult<Booking> Delete(int id)
+        {
+            var booking = _repository.GetById(id);
+            if (booking == null)
+            {
+                return NotFound($"No booking found with ID: {id}");
+            }
+            _repository.Delete(id);
+            return Ok(booking);
+
         }
     }
 }
