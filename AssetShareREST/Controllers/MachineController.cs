@@ -23,7 +23,7 @@ namespace AssetShareREST.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<Machine>> Get()
         {
-            var list = _repository.Get();
+            var list = _repository.GetAll();
             if (list == null || !list.Any())
             {
                 return NotFound();
@@ -86,7 +86,7 @@ namespace AssetShareREST.Controllers
             try
             {
                 // Tjek for konflikt: fx maskiner med samme title på samme location
-                bool conflict = _repository.Get()
+                bool conflict = _repository.GetAll()
                     .Any(m => m.Id != id &&
                               m.Title == updatedMachine.Title &&
                               m.Location == updatedMachine.Location);
