@@ -1,16 +1,21 @@
 using AssetShareLib;
+using AssetShareREST.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.Configure<MongoDbSettings>(
+    builder.Configuration.GetSection("MongoDb"));
+
+builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<MachineRepository>();
+builder.Services.AddScoped<ListingRepository>();
+builder.Services.AddScoped<BookingRepository>();
 
 builder.Services.AddControllers();
-builder.Services.AddSingleton<UserRepository>(new UserRepository());
-builder.Services.AddSingleton<BookingRepository>(new BookingRepository());
-builder.Services.AddSingleton<ListingRepository>(new ListingRepository());
-builder.Services.AddSingleton<MachineRepository>(new MachineRepository());
 
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
