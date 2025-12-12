@@ -1,27 +1,33 @@
 ﻿using AssetShareLib;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace AssetShareREST.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-
-    public class UserController : Controller
+    public class UserController : ControllerBase
     {
         private readonly UserRepository _repository;
+
         public UserController(UserRepository userRepo)
         {
             _repository = userRepo;
         }
-        //GET: api/<UserController>
+
+        // GET: api/user
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [HttpGet]
-        public ActionResult<IEnumerable<User>> Get()
+        public async Task<ActionResult<IEnumerable<User>>> Get()
         {
-            var users = _repository.GetAll();
+            var users = await _repository.GetAllAsync();
 
-            if (users == null || !users.Any())
+            if (users == null || users.Count == 0)
             {
                 return NoContent();
             }
@@ -29,19 +35,19 @@ namespace AssetShareREST.Controllers
             return Ok(users);
         }
 
-        //GET api/<UserController>/{id}
+        // GET api/user/{id}
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [HttpGet("{id}")]
-        public ActionResult<User> Get(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<User>> Get(int id)
         {
             if (id <= 0)
             {
                 return BadRequest("Id must be a positive number");
             }
 
-            var user = _repository.GetById(id);
+            var user = await _repository.GetByIdAsync(id);
 
             if (user == null)
             {
@@ -51,56 +57,57 @@ namespace AssetShareREST.Controllers
             return Ok(user);
         }
 
-        //POST api/<UserController>
+        // POST api/user
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [HttpPost]
-        public ActionResult<User> Post([FromBody] User user)
+        public async Task<ActionResult<User>> Post([FromBody] User user)
         {
             if (user == null)
             {
                 return BadRequest("User body required");
             }
 
+            // tjek for email-konflikt
+            var existingUsers = await _repository.GetAllAsync();
             if (!string.IsNullOrWhiteSpace(user.Email) &&
-                _repository.GetAll().Any(u => u.Email == user.Email))
+                existingUsers.Any(u => u.Email == user.Email))
             {
                 return Conflict("This email is already in use");
             }
 
             try
             {
-                var created = _repository.Add(user);
+                var created = await _repository.AddAsync(user);
 
                 return CreatedAtAction(
                     nameof(Get),
                     new { id = created.Id },
                     created
-                    );
+                );
             }
-
             catch (ArgumentNullException ex)
             {
                 return BadRequest(ex.Message);
-    }
+            }
             catch (ArgumentOutOfRangeException ex)
             {
                 return BadRequest(ex.Message);
-}
+            }
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);
             }
         }
 
-        //PUT api/<UserController>/{id}
+        // PUT api/user/{id}
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [HttpPut("{id}")]
-        public ActionResult<User> Update(int id, [FromBody] User updatedUser)
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult<User>> Update(int id, [FromBody] User updatedUser)
         {
             if (id <= 0)
             {
@@ -117,14 +124,16 @@ namespace AssetShareREST.Controllers
                 return BadRequest("Body Id must match route Id.");
             }
 
-            var existing = _repository.GetById(id);
+            var existing = await _repository.GetByIdAsync(id);
             if (existing == null)
             {
                 return NotFound();
             }
 
+            // email-konflikt: andre brugere med samme email
+            var allUsers = await _repository.GetAllAsync();
             if (!string.IsNullOrWhiteSpace(updatedUser.Email) &&
-                _repository.GetAll().Any(u => u.Id != id && u.Email == updatedUser.Email))
+                allUsers.Any(u => u.Id != id && u.Email == updatedUser.Email))
             {
                 return Conflict("Another user with this email already exists.");
             }
@@ -132,7 +141,7 @@ namespace AssetShareREST.Controllers
             try
             {
                 updatedUser.Id = id;
-                var result = _repository.Update(id, updatedUser);
+                var result = await _repository.UpdateAsync(id, updatedUser);
 
                 return Ok(result);
             }
@@ -150,19 +159,19 @@ namespace AssetShareREST.Controllers
             }
         }
 
-        //DELETE api/<UserController>/{id}
+        // DELETE api/user/{id}
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [HttpDelete("{id}")]
-        public ActionResult<User> Delete(int id)
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult<User>> Delete(int id)
         {
             if (id <= 0)
             {
                 return BadRequest("Id must be a positive number.");
             }
 
-            var deleted = _repository.Delete(id);
+            var deleted = await _repository.DeleteAsync(id);
 
             if (deleted == null)
             {
@@ -173,8 +182,3 @@ namespace AssetShareREST.Controllers
         }
     }
 }
-
-
-
-
-
