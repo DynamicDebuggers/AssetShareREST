@@ -22,24 +22,17 @@ namespace AssetShareREST.Controllers
         // GET: api/machine
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Machine>>> Get()
         {
-<<<<<<< HEAD
-            var list = _repository.GetAll();
-            if (list == null || !list.Any())
-            {
-                return NotFound();
-            }
-            if (list.Count == 0)
-=======
             var machines = await _repository.Get();
 
-            if (machines == null || machines.Count == 0)
->>>>>>> Test-branch
-            {
+            if (machines == null)
+                return NotFound();
+
+            if (machines.Count == 0)
                 return NoContent();
-            }
 
             return Ok(machines);
         }
@@ -52,16 +45,12 @@ namespace AssetShareREST.Controllers
         public async Task<ActionResult<Machine>> Get(int id)
         {
             if (id <= 0)
-            {
                 return BadRequest("Id must be a positive number.");
-            }
 
             var machine = await _repository.GetById(id);
 
             if (machine == null)
-            {
                 return NotFound($"No machine found with ID: {id}");
-            }
 
             return Ok(machine);
         }
@@ -73,22 +62,15 @@ namespace AssetShareREST.Controllers
         public async Task<ActionResult<Machine>> Post([FromBody] Machine machine)
         {
             if (machine == null)
-            {
                 return BadRequest("Machine body is required.");
-            }
 
             try
             {
-                // Evt. simpel validiering – kan udvides
                 if (string.IsNullOrWhiteSpace(machine.Title))
-                {
                     return BadRequest("Title is required.");
-                }
 
                 if (machine.Price <= 0)
-                {
                     return BadRequest("Price must be greater than zero.");
-                }
 
                 var created = await _repository.Add(machine);
 
@@ -112,53 +94,46 @@ namespace AssetShareREST.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         [HttpPut("{id:int}")]
         public async Task<ActionResult<Machine>> Put(int id, [FromBody] Machine updatedMachine)
         {
             if (id <= 0)
-            {
                 return BadRequest("Id must be a positive number.");
-            }
 
             if (updatedMachine == null)
-            {
                 return BadRequest("Machine body is required.");
-            }
 
-            // sørg for at Id i body matcher route (hvis sat)
+            // Ensure body Id matches route Id (if provided)
             if (updatedMachine.Id != 0 && updatedMachine.Id != id)
-            {
                 return BadRequest("Body Id must match route Id.");
-            }
 
             var existing = await _repository.GetById(id);
             if (existing == null)
-            {
                 return NotFound($"No machine found with ID: {id}");
-            }
 
             try
             {
-<<<<<<< HEAD
-                // Tjek for konflikt: fx maskiner med samme title på samme location
-                bool conflict = _repository.GetAll()
-                    .Any(m => m.Id != id &&
-                              m.Title == updatedMachine.Title &&
-                              m.Location == updatedMachine.Location);
-                if (conflict)
+                // Optional conflict check (from HEAD idea): same Title + Location for another machine
+                // Only run if your domain actually uses Location meaningfully.
+                var allMachines = await _repository.Get();
+                if (allMachines != null)
                 {
-                    return Conflict("En maskine med samme titel på denne location eksisterer allerede.");
+                    bool conflict = allMachines.Any(m =>
+                        m.Id != id &&
+                        string.Equals(m.Title, updatedMachine.Title, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(m.Location, updatedMachine.Location, StringComparison.OrdinalIgnoreCase));
+
+                    if (conflict)
+                        return Conflict("A machine with the same title at this location already exists.");
                 }
-=======
+
                 updatedMachine.Id = id;
 
                 var result = await _repository.Update(id, updatedMachine);
->>>>>>> Test-branch
 
                 if (result == null)
-                {
                     return NotFound($"No machine found with ID: {id}");
-                }
 
                 return Ok(result);
             }
@@ -180,16 +155,12 @@ namespace AssetShareREST.Controllers
         public async Task<ActionResult<Machine>> Delete(int id)
         {
             if (id <= 0)
-            {
                 return BadRequest("Id must be a positive number.");
-            }
 
             var removed = await _repository.Remove(id);
 
             if (removed == null)
-            {
                 return NotFound($"No machine found with ID: {id}");
-            }
 
             return Ok(removed);
         }

@@ -36,14 +36,6 @@ app.UseDeveloperExceptionPage();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-<<<<<<< HEAD
-// Configure the HTTP request pipeline.
-app.UseSwagger();
-app.UseSwaggerUI();
-
-=======
->>>>>>> Test-branch
-
 app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
