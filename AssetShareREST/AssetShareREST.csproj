@@ -12,7 +12,11 @@
 
   <ItemGroup>
     <Reference Include="AssetShareLib">
+<<<<<<< Updated upstream
       <HintPath>..\..\AssetShareLib\AssetShareLib\bin\Debug\net8.0\AssetShareLib.dll</HintPath>
+=======
+      <HintPath>..\..\..\..\source\repos\AssetShareLib\AssetShareLib\bin\Debug\net8.0\AssetShareLib.dll</HintPath>
+>>>>>>> Stashed changes
     </Reference>
   </ItemGroup>
 
