@@ -1,6 +1,8 @@
 using AssetShareLib;
+using AssetShareREST.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +19,8 @@ builder.Services.AddScoped<ListingRepository>();
 builder.Services.AddScoped<BookingRepository>();
 
 builder.Services.AddControllers();
+builder.Services.AddSingleton<PasswordService>();
+builder.Services.AddScoped<JwtTokenService>();
 
 // Token autentifikation
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -43,7 +47,37 @@ builder.Services.AddAuthorization();
 
 // Brug Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "AssetShare API", Version = "v1" });
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Skriv: Bearer {token}"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
 
 // Brug Cors
 builder.Services.AddCors(options =>
