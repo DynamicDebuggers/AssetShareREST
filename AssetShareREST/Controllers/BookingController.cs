@@ -1,10 +1,5 @@
 ﻿using AssetShareLib;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace AssetShareREST.Controllers
 {
@@ -23,149 +18,117 @@ namespace AssetShareREST.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Booking>>> Get()
+        public ActionResult<IEnumerable<Booking>> Get()
         {
-            var list = await _repository.GetAll();
+            var list = _repository.GetAll();
 
             if (list == null || list.Count == 0)
-            {
                 return NoContent();
-            }
 
             return Ok(list);
         }
 
-        // GET api/booking/{id}
+        // GET: api/booking/{id}
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Booking>> Get(int id)
+        public ActionResult<Booking> Get(int id)
         {
             if (id <= 0)
-            {
                 return BadRequest("Invalid ID supplied.");
-            }
 
-            var booking = await _repository.GetById(id);
+            var booking = _repository.GetById(id);
             if (booking == null)
-            {
                 return NotFound($"No booking found with ID: {id}");
-            }
 
             return Ok(booking);
         }
 
-        // POST api/booking
+        // POST: api/booking
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [HttpPost]
-        public async Task<ActionResult<Booking>> Post([FromBody] Booking booking)
+        public ActionResult<Booking> Post([FromBody] Booking booking)
         {
+            if (booking == null)
+                return BadRequest("Request body is required.");
+
             try
             {
-                // (valgfrit) tjek for konflikt før vi opretter
-                var existing = await _repository.GetAll();
-                bool conflict = existing.Any(b =>
-                    b.BookedMachineId == booking.BookedMachineId &&
-                    b.Period == booking.Period
+                var result = _repository.Create(
+                    booking.RentedByUserId,
+                    booking.BookedMachineId,
+                    booking.Period
                 );
-
-                if (conflict)
-                {
-                    return Conflict("Maskinen er allerede booket på dette tidspunkt.");
-                }
-
-                var result = await _repository.Create(booking);
 
                 return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
             }
-            catch (ArgumentOutOfRangeException e)
-            {
-                return BadRequest(e.Message);
-            }
-            catch (ArgumentNullException e)
-            {
-                return BadRequest(e.Message);
-            }
-            catch (InvalidOperationException e)
-            {
-                return Conflict(e.Message);
-            }
+            catch (ArgumentOutOfRangeException e) { return BadRequest(e.Message); }
+            catch (ArgumentNullException e) { return BadRequest(e.Message); }
+            catch (ArgumentException e) { return BadRequest(e.Message); }
+            catch (InvalidOperationException e) { return Conflict(e.Message); }
         }
 
-        // DELETE api/booking/{id}
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [HttpDelete("{id:int}")]
-        public async Task<ActionResult<Booking>> Delete(int id)
-        {
-            if (id <= 0)
-            {
-                return BadRequest("Invalid ID supplied.");
-            }
-
-            var booking = await _repository.GetById(id);
-            if (booking == null)
-            {
-                return NotFound($"No booking found with ID: {id}");
-            }
-
-            await _repository.Delete(id);
-            return Ok(booking);
-        }
-
-        // PUT api/booking/{id}
+        // PUT: api/booking/{id}
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [HttpPut("{id:int}")]
-        public async Task<ActionResult<Booking>> Update(int id, [FromBody] Booking updatedBooking)
+        public ActionResult<Booking> Put(int id, [FromBody] Booking updatedBooking)
         {
             if (id <= 0)
-            {
                 return BadRequest("Invalid ID supplied.");
-            }
+
+            if (updatedBooking == null)
+                return BadRequest("Request body is required.");
+
+            // (valgfrit men smart) conflict check før update
+            var existing = _repository.GetById(id);
+            if (existing == null)
+                return NotFound($"No booking found with ID: {id}");
+
+            int newMachineId = updatedBooking.BookedMachineId != 0 ? updatedBooking.BookedMachineId : existing.BookedMachineId;
+            DateTime newPeriod = updatedBooking.Period != DateTime.MinValue ? updatedBooking.Period : existing.Period;
+
+            bool conflict = _repository.GetAll().Any(b =>
+                b.Id != id &&
+                b.BookedMachineId == newMachineId &&
+                b.Period == newPeriod
+            );
+
+            if (conflict)
+                return Conflict("Maskinen er allerede booket på dette tidspunkt.");
 
             try
             {
-                // Konflikt: anden booking med samme maskine + periode
-                var all = await _repository.GetAll();
-                bool conflict = all.Any(b =>
-                    b.Id != id &&
-                    b.BookedMachineId == updatedBooking.BookedMachineId &&
-                    b.Period == updatedBooking.Period
-                );
-
-                if (conflict)
-                {
-                    return Conflict("Maskinen er allerede booket på dette tidspunkt.");
-                }
-
-                var result = await _repository.Update(id, updatedBooking);
-
-                // vores Mongo–repo smider KeyNotFoundException hvis den ikke findes
+                var result = _repository.Update(id, updatedBooking);
                 return Ok(result);
             }
-            catch (KeyNotFoundException e)
-            {
-                return NotFound(e.Message);
-            }
-            catch (ArgumentOutOfRangeException e)
-            {
-                return BadRequest(e.Message);
-            }
-            catch (ArgumentNullException e)
-            {
-                return BadRequest(e.Message);
-            }
-            catch (InvalidOperationException e)
-            {
-                return Conflict(e.Message);
-            }
+            catch (KeyNotFoundException e) { return NotFound(e.Message); }
+            catch (ArgumentOutOfRangeException e) { return BadRequest(e.Message); }
+            catch (ArgumentNullException e) { return BadRequest(e.Message); }
+            catch (ArgumentException e) { return BadRequest(e.Message); }
+        }
+
+        // DELETE: api/booking/{id}
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpDelete("{id:int}")]
+        public ActionResult<Booking> Delete(int id)
+        {
+            if (id <= 0)
+                return BadRequest("Invalid ID supplied.");
+
+            var booking = _repository.GetById(id);
+            if (booking == null)
+                return NotFound($"No booking found with ID: {id}");
+
+            _repository.Delete(id);
+            return Ok(booking);
         }
     }
 }
