@@ -17,6 +17,7 @@ builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<MachineRepository>();
 builder.Services.AddScoped<ListingRepository>();
 builder.Services.AddScoped<BookingRepository>();
+builder.Services.AddScoped<ReviewRepository>();
 
 builder.Services.AddControllers();
 builder.Services.AddSingleton<PasswordService>();
