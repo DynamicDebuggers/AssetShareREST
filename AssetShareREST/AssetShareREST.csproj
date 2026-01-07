@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <Reference Include="AssetShareLib">
-      <HintPath>..\..\AssetShare_Backend\AssetShareLib\bin\Debug\net8.0\AssetShareLib.dll</HintPath>
+      <HintPath>..\..\..\..\source\repos\AssetShareLib\AssetShareLib\bin\Debug\net8.0\AssetShareLib.dll</HintPath>
     </Reference>
   </ItemGroup>
 
