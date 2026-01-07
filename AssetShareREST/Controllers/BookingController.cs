@@ -60,7 +60,8 @@ namespace AssetShareREST.Controllers
                 var result = _repository.Create(
                     booking.RentedByUserId,
                     booking.BookedMachineId,
-                    booking.Period
+                    booking.StartDate,
+                    booking.EndDate
                 );
 
                 return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
@@ -85,23 +86,6 @@ namespace AssetShareREST.Controllers
             if (updatedBooking == null)
                 return BadRequest("Request body is required.");
 
-            // (valgfrit men smart) conflict check før update
-            var existing = _repository.GetById(id);
-            if (existing == null)
-                return NotFound($"No booking found with ID: {id}");
-
-            int newMachineId = updatedBooking.BookedMachineId != 0 ? updatedBooking.BookedMachineId : existing.BookedMachineId;
-            DateTime newPeriod = updatedBooking.Period != DateTime.MinValue ? updatedBooking.Period : existing.Period;
-
-            bool conflict = _repository.GetAll().Any(b =>
-                b.Id != id &&
-                b.BookedMachineId == newMachineId &&
-                b.Period == newPeriod
-            );
-
-            if (conflict)
-                return Conflict("Maskinen er allerede booket på dette tidspunkt.");
-
             try
             {
                 var result = _repository.Update(id, updatedBooking);
@@ -111,6 +95,7 @@ namespace AssetShareREST.Controllers
             catch (ArgumentOutOfRangeException e) { return BadRequest(e.Message); }
             catch (ArgumentNullException e) { return BadRequest(e.Message); }
             catch (ArgumentException e) { return BadRequest(e.Message); }
+            catch (InvalidOperationException e) { return Conflict(e.Message); } // overlap/conflict
         }
 
         // DELETE: api/booking/{id}
